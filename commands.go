@@ -26,7 +26,7 @@ var commands = map[string]command{}
 
 func init() {
 	commands["help"] = command{description: "show available commands", run: cmdHelp}
-	commands["provider"] = command{description: "show or change the LLM provider", usage: "/provider [anthropic|openai]", run: cmdProvider}
+	commands["provider"] = command{description: "show or change the LLM provider", usage: "/provider [ollama|anthropic|openai]", run: cmdProvider}
 	commands["model"] = command{description: "show or change the model", usage: "/model [name]", run: cmdModel}
 	commands["clear"] = command{description: "clear conversation history", run: cmdClear}
 	commands["tools"] = command{description: "list available tools", run: cmdTools}
@@ -133,6 +133,11 @@ func cmdHelp(_ string) {
 // Keyed by provider short name (see ProviderKind in main.go). Any model id
 // can be set — validation happens at the next Send call.
 var knownModels = map[string][]string{
+	"ollama": {
+		"gemma4:12b",
+		"qwen2.5-coder:latest",
+		"llama3.2:3b",
+	},
 	"anthropic": {
 		"claude-opus-4-7",
 		"claude-opus-4-6",
@@ -198,7 +203,11 @@ func cmdProvider(args string) {
 }
 
 func apiKeySet(provider string) bool {
-	return os.Getenv(apiKeyEnv(provider)) != ""
+	env := apiKeyEnv(provider)
+	if env == "" {
+		return true
+	}
+	return os.Getenv(env) != ""
 }
 
 func apiKeyEnv(provider string) string {

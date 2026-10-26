@@ -264,7 +264,7 @@ func main() {
 // KnownProviders is the ordered list of names accepted by /provider and by
 // $LLM_PROVIDER. Update both this list and newProviderByName when adding a
 // backend.
-var KnownProviders = []string{"anthropic", "openai"}
+var KnownProviders = []string{"ollama", "anthropic", "openai"}
 
 // newProvider picks the initial provider at startup, honoring $LLM_PROVIDER
 // and $LLM_MODEL as optional defaults. Mid-session swaps go through the
@@ -272,12 +272,12 @@ var KnownProviders = []string{"anthropic", "openai"}
 func newProvider(sysPrompt string) provider.Provider {
 	name := os.Getenv("LLM_PROVIDER")
 	if name == "" {
-		name = "anthropic"
+		name = "ollama"
 	}
 	p, err := newProviderByName(name, os.Getenv("LLM_MODEL"), sysPrompt)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "provider: %v (falling back to anthropic)\n", err)
-		p, _ = newProviderByName("anthropic", "", sysPrompt)
+		fmt.Fprintf(os.Stderr, "provider: %v (falling back to ollama)\n", err)
+		p, _ = newProviderByName("ollama", "", sysPrompt)
 	}
 	return p
 }
@@ -286,6 +286,11 @@ func newProvider(sysPrompt string) provider.Provider {
 // string falls back to that provider's default. Unknown names error.
 func newProviderByName(name, model, sysPrompt string) (provider.Provider, error) {
 	switch name {
+	case "ollama":
+		if model == "" {
+			model = "gemma4:12b"
+		}
+		return provider.NewOllamaProvider(model, sysPrompt, 8192), nil
 	case "anthropic":
 		m := anthropic.Model(model)
 		if m == "" {
@@ -320,6 +325,8 @@ func switchProvider(name, model string) error {
 // and /provider to display the active backend.
 func ProviderKind(p provider.Provider) string {
 	switch p.(type) {
+	case *provider.OllamaProvider:
+		return "ollama"
 	case *provider.AnthropicProvider:
 		return "anthropic"
 	case *provider.OpenAIProvider:

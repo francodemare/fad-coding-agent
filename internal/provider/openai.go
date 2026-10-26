@@ -3,11 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/shared"
 
@@ -19,10 +21,11 @@ import (
 // Works for any chat-capable model: gpt-4o, gpt-5, gpt-5-codex, o3-mini, etc.
 // This file is the only place in the harness that imports openai-go.
 type OpenAIProvider struct {
-	client    openai.Client
-	model     string
-	system    string
-	maxTokens int64
+	client       openai.Client
+	providerName string
+	model        string
+	system       string
+	maxTokens    int64
 
 	mu    sync.Mutex
 	total api.Usage
@@ -32,11 +35,25 @@ type OpenAIProvider struct {
 // from the environment by default; pass option.WithAPIKey if you need to
 // override.
 func NewOpenAIProvider(model, system string, maxTokens int64) *OpenAIProvider {
+	return newOpenAIProviderWithBaseURL("openai", model, system, maxTokens, "")
+}
+
+func newOpenAIProviderWithBaseURL(providerName, model, system string, maxTokens int64, baseURL string) *OpenAIProvider {
+	var opts []option.RequestOption
+	if baseURL != "" {
+		opts = append(opts, option.WithBaseURL(baseURL))
+		// Local OpenAI-compatible servers (like Ollama) don't validate the API
+		// key, but the OpenAI SDK requires a non-empty key at construction time.
+		if os.Getenv("OPENAI_API_KEY") == "" {
+			opts = append(opts, option.WithAPIKey("ollama"))
+		}
+	}
 	return &OpenAIProvider{
-		client:    openai.NewClient(),
-		model:     model,
-		system:    system,
-		maxTokens: maxTokens,
+		client:       openai.NewClient(opts...),
+		providerName: providerName,
+		model:        model,
+		system:       system,
+		maxTokens:    maxTokens,
 	}
 }
 
@@ -77,7 +94,12 @@ func (p *OpenAIProvider) Send(ctx context.Context, messages []api.Message, tools
 	model := p.model
 	p.mu.Unlock()
 
-	reqSummary := fmt.Sprintf("→ openai.Send model=%s msgs=%d tools=%d", model, len(messages), len(tools))
+	name := p.providerName
+	if name == "" {
+		name = "openai"
+	}
+
+	reqSummary := fmt.Sprintf("→ %s.Send model=%s msgs=%d tools=%d", name, model, len(messages), len(tools))
 	reqID := debug.Recordp("provider", debug.LevelInfo, reqSummary, marshalRequestPayload(model, p.system, p.maxTokens, messages, tools))
 	start := time.Now()
 	resp, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
@@ -88,7 +110,7 @@ func (p *OpenAIProvider) Send(ctx context.Context, messages []api.Message, tools
 	})
 	elapsed := time.Since(start).Round(time.Millisecond)
 	if err != nil {
-		debug.Recordfc(reqID, "provider", debug.LevelError, "← openai.Send error (%v): %v", elapsed, err)
+		debug.Recordfc(reqID, "provider", debug.LevelError, "← %s.Send error (%v): %v", name, elapsed, err)
 		return api.Response{}, err
 	}
 	if len(resp.Choices) == 0 {
@@ -119,8 +141,8 @@ func (p *OpenAIProvider) Send(ctx context.Context, messages []api.Message, tools
 	p.mu.Lock()
 	p.total = p.total.Add(out.Usage)
 	p.mu.Unlock()
-	respSummary := fmt.Sprintf("← openai.Send (%v in=%d out=%d cache=%d stop=%s)",
-		elapsed, out.Usage.InputTokens, out.Usage.OutputTokens, out.Usage.CacheReadTokens, out.StopReason)
+	respSummary := fmt.Sprintf("← %s.Send (%v in=%d out=%d cache=%d stop=%s)",
+		name, elapsed, out.Usage.InputTokens, out.Usage.OutputTokens, out.Usage.CacheReadTokens, out.StopReason)
 	debug.Recordpc(reqID, "provider", debug.LevelInfo, respSummary, marshalResponsePayload(out, elapsed))
 	return out, nil
 }

@@ -8,20 +8,20 @@ import (
 	"golang.org/x/term"
 )
 
-// The big banner is 75 cols wide. We need ~78 cols of terminal to render it
+// The big banner is 90 cols wide. We need ~93 cols of terminal to render it
 // without wrapping (a little breathing room).
 const (
-	bigBannerMinWidth = 78
-	BigBannerWidth    = 75 // visual width of the wordmark, used by the shine animation
+	bigBannerMinWidth = 93
+	BigBannerWidth    = 90 // visual width of the wordmark, used by the shine animation
 )
 
 const bigBanner = `
-██████╗ ███████╗████████╗████████╗ █████╗ ████████╗███████╗ ██████╗██╗  ██╗
-██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔══██╗╚══██╔══╝██╔════╝██╔════╝██║  ██║
-██████╔╝█████╗     ██║      ██║   ███████║   ██║   █████╗  ██║     ███████║
-██╔══██╗██╔══╝     ██║      ██║   ██╔══██║   ██║   ██╔══╝  ██║     ██╔══██║
-██████╔╝███████╗   ██║      ██║   ██║  ██║   ██║   ███████╗╚██████╗██║  ██║
-╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝
+██████╗ ███████╗███╗   ███╗ █████╗ ██████╗ ███████╗       ██████╗ ██████╗ ██████╗ ███████╗
+██╔══██╗██╔════╝████╗ ████║██╔══██╗██╔══██╗██╔════╝      ██╔════╝██╔═══██╗██╔══██╗██╔════╝
+██║  ██║█████╗  ██╔████╔██║███████║██████╔╝█████╗  █████╗██║     ██║   ██║██║  ██║█████╗  
+██║  ██║██╔══╝  ██║╚██╔╝██║██╔══██║██╔══██╗██╔══╝  ╚════╝██║     ██║   ██║██║  ██║██╔══╝  
+██████╔╝███████╗██║ ╚═╝ ██║██║  ██║██║  ██║███████╗      ╚██████╗╚██████╔╝██████╔╝███████╗
+╚═════╝ ╚══════╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝       ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
 `
 
 // PrintBanner renders the startup banner. Falls back to a single-line
@@ -39,7 +39,7 @@ func BannerText(width int) string {
 			Dimmed("              build your own coding agent") + "\n" +
 			Dimmed("              type a message · /help for commands · ctrl-d to exit") + "\n\n"
 	}
-	return "\n" + Cyan("  BETTATECH") + Dimmed("  ·  build your own coding agent") + "\n" +
+	return "\n" + Cyan("  DEMARE-CODE") + Dimmed("  ·  build your own coding agent") + "\n" +
 		Dimmed("  type a message or /help") + "\n\n"
 }
 
